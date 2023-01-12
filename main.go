@@ -1,20 +1,68 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
 
-// Version 1, take a static sudoku puzzle and come up with a solution, print out the rows in CLI format
+	"github.com/joho/godotenv"
+)
+
+type Data struct {
+	Seed       int
+	difficulty string
+	Puzzle     string
+}
+
 func main() {
-	puzz := [][]int{
-		{3, 4, 2, 0, 1, 0, 0, 6, 0},
-		{5, 9, 8, 0, 0, 3, 0, 0, 0},
-		{0, 6, 1, 2, 0, 5, 8, 0, 4},
-		{4, 5, 0, 0, 7, 8, 0, 9, 2},
-		{8, 0, 9, 6, 0, 4, 0, 5, 7},
-		{1, 3, 7, 5, 2, 0, 6, 4, 0},
-		{6, 0, 0, 9, 0, 0, 7, 8, 3},
-		{2, 0, 5, 0, 8, 6, 0, 0, 0},
-		{0, 8, 3, 0, 4, 1, 5, 2, 0},
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatalf("Some error occured. Err: %s", err)
 	}
+	url := "https://sudoku-generator1.p.rapidapi.com/sudoku/generate"
+
+	req, _ := http.NewRequest("GET", url, nil)
+
+	req.Header.Add("X-RapidAPI-Key", os.Getenv("X-RapidAPI-Key"))
+	req.Header.Add("X-RapidAPI-Host", os.Getenv("X-RapidAPI-Host"))
+
+	res, _ := http.DefaultClient.Do(req)
+
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+
+	var payload Data
+	err = json.Unmarshal(body, &payload)
+	if err != nil {
+		log.Fatal("Error during Unmarshal(): ", err)
+	}
+
+	var row []int
+	var puzz [][]int
+	for i, v := range payload.Puzzle {
+		var val int
+		if string(v) == "." {
+			val = 0
+		} else {
+			val, err = strconv.Atoi(string(v))
+			if err != nil {
+				log.Fatal("Error during string conversion: ", err)
+			}
+		}
+		row = append(row, val)
+		if (i+1)%9 == 0 {
+			puzz = append(puzz, row)
+			row = nil
+		}
+	}
+
+	fmt.Println("Initial board pulled from rapid api")
+	displayBoard(puzz)
+	fmt.Println()
 
 	emptySpaces := make([][2]int, 2)
 	//Append the first empty space before beginning the loop
@@ -30,21 +78,23 @@ func main() {
 		i := puzz[emptySpaces[0][0]][emptySpaces[0][1]] + 1
 		//Void out whatever number is currently in the puzzle, it is not valid
 		puzz[emptySpaces[0][0]][emptySpaces[0][1]] = 0
-		for ;i < 10; i++ {
+		for ; i < 10; i++ {
 			if isNumValid(puzz, i, emptySpaces[0][0], emptySpaces[0][1]) {
 				puzz[emptySpaces[0][0]][emptySpaces[0][1]] = i
 				validNumberFound = true
 				break
 			}
 		}
-			if !validNumberFound {
-				emptySpaces = emptySpaces[1:] // Pop off the stack
-				continue                      //Go to the previous position, i.e. backtrack and try a different number
-			}
-			//Append to the top of the stack a new empty space
-			emptySpaces = append([][2]int{getEmptySpace(puzz)},emptySpaces...)
+		if !validNumberFound {
+			emptySpaces = emptySpaces[1:] // Pop off the stack
+			continue                      //Go to the previous position, i.e. backtrack and try a different number
 		}
+		//Append to the top of the stack a new empty space
+		emptySpaces = append([][2]int{getEmptySpace(puzz)}, emptySpaces...)
+	}
 
+	fmt.Println("Solution to generated sudoku puzzle")
+	fmt.Println()
 	displayBoard(puzz)
 }
 
