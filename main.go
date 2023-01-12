@@ -150,3 +150,20 @@ func getEmptySpace(puzz [][]int) [2]int {
 	}
 	return [2]int{-1, -1}
 }
+
+//Version 2: Pull from an api, and solve the puzzle
+
+/*
+	TODO:
+	- Curate a list of random sudoku puzzles to read from if a person does not have a rapid api key to use
+	- Create a home page that will pull in an initial puzzle from either the api or a given json file list
+	- On that home page, add in a "solve" button, that will take the user to a solution of the puzzle
+	- Organize this project properly based on golang standards
+	- Add in testing for the solver methods, and get method
+	-(Maybes) Create a way to be able to make a pdf file or something of the sudoku file (maybe a browsers print is enough?)
+	-(Maybe) Create a way to be able to email to a user a sudoku puzzle file
+
+	- Long term stuff to maybe do
+		- Introduce svelte and javascript for reactive solver
+		- Make the solver reactive, fire off multiple requests to change each position to show it changing in real time.
+*/
